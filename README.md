@@ -5,19 +5,19 @@ Data Analysis with R - Project 1: Exploratory Data Analysis with the NHTS 2017 d
 # Source: https://www.nrel.gov/transportation/secure-transportation-data/tsdc-nhts-california.html
 # Teams spreasheet https://docs.google.com/spreadsheets/d/1BbkR-iy81P3qHhcWPqTWPihxNZED3g2sM4F2FkyLGp8/edit?usp=drive_web&ouid=115766574533342049425
 
-## Notes on data
-# CSV Files included
+# Notes on data
+## CSV Files included
     1. household data
     2. location data
     3. person data
     4. Trips data
     5. vehicles data
 
-#Labelling
+## Labelling
 Try labeling values using thsc-nhts17-caltranscodebook.xlsx
 Understand the data using the dictionary tsdc-nhts17-caltrans-datadictionary.pdf
 
-# Missing Values
+## Missing Values
 Missing values are coded lile -9,-8,-7, etc. Check you are labelling correctly
 
 ## Instructions
