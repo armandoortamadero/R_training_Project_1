@@ -227,10 +227,16 @@ names(hh_veh_data)
 
 # ==== visualizations === #
 
+#age distribution of vehicles
+
+#boxplot of age by top10 vehicles
+
+#age of vehicles distribution by income
 
 
 # ==== Interactive visualizations === #
 
+#type of fuel by income
 
 
 # --- The end of Part 2 --- #
