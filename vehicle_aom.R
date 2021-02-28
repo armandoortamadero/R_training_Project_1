@@ -19,7 +19,12 @@ library(Hmisc)
 library(summarytools)
 library(dplyr)
 library(ggplot2)
+library(ggpubr)
 library(RColorBrewer)
+library(ggsci)
+library(ggthemes)
+library(viridis)
+library(tvthemes)
 
 getwd()
 setwd("~/00 Steer R Training/Project 1/Data")
@@ -70,8 +75,6 @@ avgVehAge <- survey_vehicles_top10 %>%
             as.data.frame()
 avgVehAge
 
-#Extract the names 
-
 #transform the VALUE column of the codebook to allow for other matchings with other datasets 
 #(and avoid problems of a character value 07 vs 7 in numeric on the surveys dataset)
 NHTS_codebook_vehicle$VALUE <- as.numeric(NHTS_codebook_vehicle$VALUE)
@@ -101,7 +104,7 @@ avgVehStats <- survey_vehicles_top10 %>%
   as.data.frame()
 avgVehStats
 
-#create a new column to add labels to the fuel type variable (another method from above)
+#create a new column to add labels to the fuel type variable (another method to create a factor)
 survey_vehicles_top10<- survey_vehicles_top10 %>%
   mutate(fueltype_labelled = case_when(fueltype < 0 ~ 'NA',
                                         fueltype == 1 ~ 'Gas',
@@ -169,7 +172,7 @@ names(fuel_val)
 make_val$make <-as.numeric(make_val$make)
 fuel_val$fueltype <-as.numeric(fuel_val$fueltype)
 
-#merge
+#merge the categories for make and fuel type to their values in the original dataset
 vehicles_join <- dplyr::full_join(vehicles, make_val, by = 'make')
 vehicles_join <- dplyr::full_join(vehicles_join, fuel_val, by = 'fueltype')
 str(vehicles_join)
@@ -222,21 +225,125 @@ hh_info %>%
 #there are less variables in the household dataset. It is more relevant to compare that dataset. 
 
 hh_veh_data <- dplyr::left_join(hh_info, vehicles_join, by ='sampno')
-str(hh_veh_data) #this dataset is larger than hh_info beacuse it could register multiple cars per household id (sampno)
+str(hh_veh_data) #this dataset is larger than hh_info because it could register multiple cars per household id (sampno)
 names(hh_veh_data)
 
 # ==== visualizations === #
 
 #age distribution of vehicles
 
+hh_veh_data <- hh_veh_data %>%
+  mutate(vehage = ifelse(vehage %in% c(-8, -7), NA, vehage))
+
+plot_veh_age <- ggplot(hh_veh_data, aes(x = vehage)) + 
+  geom_bar(fill = "#55a14a",
+    position = position_dodge(), 
+           alpha = 0.5, 
+           color="white") + # adds white borders between bars
+    ggtitle("Vehicle distribution by age of vehicle") +
+  xlab("Vehicle age (years)") +
+  ylab("Vehicles") +
+  scale_fill_brewer(palette = 'Accent')+
+  theme_cleveland()
+
+plot_veh_age
+
 #boxplot of age by top10 vehicles
 
-#age of vehicles distribution by income
+top10_make <- hh_veh_data %>%
+  group_by(make_label) %>%
+  summarise(N = n()) %>%
+  arrange(-N) %>%
+  top_n(10) 
+top10_make
 
+top10_make <- pull(top10_make,make_label)  
+str(top10_make)
+
+hh_veh_data_top10 <- hh_veh_data %>% filter(make_label %in% top10_make) 
+str(hh_veh_data_top10)
+
+
+plot_make_age <- ggplot(hh_veh_data_top10, aes(x = make_label, y = vehage)) + 
+  geom_boxplot(fill = "#229eba", 
+               color = "#229eba", 
+               alpha = 0.8) +
+  stat_summary(fun = mean, 
+               geom = "point", 
+               shape = 20) + # 'stat_summary' adds a geom layer with a statistic
+  ggtitle("Boxplots of vehicle age for the 10 most popular car manufacturers") +
+  xlab("Car maufacturer") +
+  ylab("Vehicle age") 
+  
+plot_make_age
+
+#age of vehicles distribution by income and fuel type
+
+#changing 'Do not know' answers to NA in Income category
+hh_veh_data <- hh_veh_data %>%
+  mutate(LABEL = ifelse(LABEL %in% c("I prefer not to answer", "I don't know", "Not ascertained"), NA, LABEL))
+
+#changing the order of the values in Income category
+hh_veh_data$LABEL <- factor(hh_veh_data$LABEL, levels = c("NA","Less than $10,000","$10,000 to $14,999","$15,000 to $24,999",
+                                                          "$25,000 to $34,999", "$35,000 to $49,999","$50,000 to $74,999",
+                                                          "$75,000 to $99,999","$100,000 to $124,999", "$125,000 to $149,999","$150,000 to $199,999",
+                                                          "$200,000 or more"), 
+                             labels = c("NA","Less than $10,000","$10,000 to $14,999","$15,000 to $24,999",
+                                        "$25,000 to $34,999", "$35,000 to $49,999","$50,000 to $74,999",
+                                        "$75,000 to $99,999","$100,000 to $124,999", "$125,000 to $149,999","$150,000 to $199,999",
+                                        "$200,000 or more"), 
+                             ordered = TRUE)
+str(hh_veh_data$LABEL)
+unique(hh_veh_data$LABEL)
+
+#converting negative answers in vehicle age category to NA
+hh_veh_data <- hh_veh_data %>%
+  mutate(vehage = ifelse(vehage %in% c(-8, -7), NA, vehage))
+
+#plot of age of vehicles distribution by income
+plot_age_income_fuel <- ggplot(data=subset(hh_veh_data, !is.na(LABEL)), aes(y=LABEL, x=vehage, colour = LABEL), na.rm = TRUE) +
+  geom_count(alpha=0.5) +
+  labs(title = "Distribution of vehicle age by income ",
+       x = "Vehicle age (years)",
+       y = "Income group",
+       size = "")
+
+plot_age_income_fuel
 
 # ==== Interactive visualizations === #
+#changing the order of the values in Income category
+hh_veh_data_top10$LABEL <- factor(hh_veh_data_top10$LABEL, levels = c("NA","Less than $10,000","$10,000 to $14,999","$15,000 to $24,999",
+                                                          "$25,000 to $34,999", "$35,000 to $49,999","$50,000 to $74,999",
+                                                          "$75,000 to $99,999","$100,000 to $124,999", "$125,000 to $149,999","$150,000 to $199,999",
+                                                          "$200,000 or more"), 
+                            labels = c("NA","Less than $10,000","$10,000 to $14,999","$15,000 to $24,999",
+                                       "$25,000 to $34,999", "$35,000 to $49,999","$50,000 to $74,999",
+                                       "$75,000 to $99,999","$100,000 to $124,999", "$125,000 to $149,999","$150,000 to $199,999",
+                                       "$200,000 or more"), 
+                            ordered = TRUE)
+str(hh_veh_data_top10$LABEL)
+unique(hh_veh_data_top10$LABEL)
 
-#type of fuel by income
+#converting negative answers in vehicle age category to NA
+hh_veh_data_top10 <- hh_veh_data_top10 %>%
+  mutate(vehage = ifelse(vehage %in% c(-8, -7), NA, vehage))
 
+#type of fuel by income by top 10 vehicle makers
+
+plot_age_income_fuel_top10 <- ggplot(data=subset(hh_veh_data_top10, !is.na(LABEL)), aes(y=LABEL, x=vehage, colour = make_label), na.rm = TRUE) +
+  geom_count(alpha=0.5) +
+  theme(legend.position = "none") + 
+  facet_wrap(~make_label)+
+  labs(title = "Distribution of vehicle age by income and most popular car brand ",
+       x = "Vehicle age (years)",
+       y = "Income group",
+       size = "")
+
+plot_age_income_fuel_top10
+
+ggplotly(plot_age_income_fuel_top10)
 
 # --- The end of Part 2 --- #
+
+
+
