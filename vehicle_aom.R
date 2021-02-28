@@ -42,7 +42,6 @@ excel_sheets("thsc-nhts17-caltrans-codebook.xlsx") #exploring the codebook sheet
 NHTS_codebook <- read_excel("thsc-nhts17-caltrans-codebook.xlsx", sheet = 2, col_names = TRUE) # loading values from the codebook
 str(NHTS_codebook)
 names(NHTS_codebook)
-View(NHTS_codebook)
 unique(NHTS_codebook$TABLE)
 
 NHTS_codebook_vehicle <- NHTS_codebook %>% filter(TABLE=="VEHICLE") # extracting the values related to the Vehicle survey
